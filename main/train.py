@@ -21,14 +21,6 @@ def parse_args():
     parser.add_argument("--dropout_rate", type=float, default=0.1)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--num_blocks", type=int, default=1)
-    parser.add_argument("--num_heads", type=int, default=8)
-    parser.add_argument("--num_vocabulary", type=int, default=178423)
-    parser.add_argument("--feed_forward_in_dim", type=int, default=2048)
-    parser.add_argument("--model_dim", type=int, default=512)
-    parser.add_argument("--date_span", type=int, default=60)
-    parser.add_argument("--enable_date_time_emb", type=int, default=1)
-    parser.add_argument("--word_emb_dim", type=int, default=512)
-    parser.add_argument("--max_query_count", type=int, default=300)
     parser.add_argument("--init_ckt_dir", type=str)
     parser.add_argument("--init_ckt_step", type=int)
     return parser.parse_known_args()[0]
@@ -55,17 +47,6 @@ def main():
 
     transformer_model = model.TextTransformerNet(
         bert_config=config,
-        model_configs=model.TextTransformerNet.ModelConfigs(
-            dropout_rate=args.dropout_rate,
-            num_vocabulary = args.num_vocabulary,
-            feed_forward_in_dim = args.feed_forward_in_dim,
-            model_dim = args.model_dim,
-            num_blocks = args.num_blocks,
-            num_heads = args.num_heads,
-            enable_date_time_emb = args.enable_date_time_emb,
-            word_emb_dim=args.word_emb_dim,
-            date_span=args.date_span
-        ),
         train_configs=model.TrainConfigs(
             learning_rate=args.learning_rate,
             batch_size=args.batch_size,

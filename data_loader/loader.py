@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 class OdpsDataLoader:
-    def __init__(self, table_name, hist_length, target_length, mode, repeat=None, batch_size=128, shuffle=2000, slice_id=0, slice_count=1,query_counts = 300):
+    def __init__(self, table_name, hist_length, target_length, mode, repeat=None, batch_size=128, shuffle=0, slice_id=0, slice_count=1,query_counts = 300):
         # Avoid destroying input parameter
         self._table_name = table_name
         self._max_length = hist_length
@@ -66,7 +66,7 @@ class OdpsDataLoader:
             if self._repeat != 1:
                 dataset = dataset.repeat(self._repeat)
 
-            dataset = dataset.prefetch(40000)
+            dataset = dataset.prefetch(100)
             dataset = dataset.padded_batch(
                 self._batch_size,
                 padded_shapes=(

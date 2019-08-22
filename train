@@ -1,0 +1,30 @@
+rm /mnt/d/code/tf-universal-embedding/tf-universal-embedding.tar.gz
+tar -czf tf-universal-embedding.tar.gz ./data_dumper ./data_loader ./main ./model  ./trainer ./util ./configs
+
+ITERATION=9999999
+SNAPSHOT=50000
+CHECKPOINT_PATH=manxiu/models/text_bert_pretrain/uef/unv_bert_transformer_hist_bert_2m_7d_17w_vocab
+BATCH_SIZE=64
+TARGET_LENGTH=100
+BERT_PATH=manxiu/models/text_bert_pretrain/pretrain/minibert_pretrain_unify_dense_before_cate
+BERT_STEP=530000
+
+# use time dataset
+# USE_DATE_EMBEDDING=1
+# FEED_FORWORD_DIM=1024
+# MODEL_DIM=256
+# WORD_DIM=256
+# NUM_HEADS=8
+
+odpscmd -e "set odps.algo.hybrid.deploy.info=LABEL:V100:OPER_EQUAL;\
+         pai \
+        -name tensorflow1120 -project algo_public_dev \
+        -DjobName=\"CNN\"\
+        -Dtags=\"cnn\"\
+        -Dscript=\"file://`pwd`/tf-universal-embedding.tar.gz\" \
+        -Dtables=\"odps://college_corp_dev/tables/universal_transformer_future_two_month_distant_2m_g60_seven_days_sort_predict_mx\" \
+        -DentryFile=\"main/train.py\" \
+        -DgpuRequired=\"400\"\
+        -Dbuckets=\"oss://one-graph/?host=cn-zhangjiakou.oss-internal.aliyun-inc.com\&role_arn=acs:ram::1459115138698067:role/manxiu\" \
+        -DuserDefinedParameters='--target_length=${TARGET_LENGTH} --init_ckt_dir=$BERT_PATH --init_ckt_step=$BERT_STEP --batch_size=${BATCH_SIZE} --snapshot=${SNAPSHOT} --max_steps=${ITERATION} --checkpoint_dir=${CHECKPOINT_PATH}'
+        "

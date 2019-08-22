@@ -91,6 +91,16 @@
     "finetune_seq_length": 8,
     "finetune_lr": 1e-3,
     "finetune_bert_lr": 5e-5,
-    "cateid_count": 12764
+    "cateid_count": 12764,
+    "num_heads": 8,
+    "word_emb_dim": 256,
+    "model_dim": 256,
+    "feed_forward_in_dim": 1024,
+    "enable_date_time_emb": 1,
+    "date_span": 60,
+    "max_query_count": 300,
+    "dropout_rate": 0.1,
+    "num_blocks": 1,
+    "transformer_vocabulary": 178422
   }
 }

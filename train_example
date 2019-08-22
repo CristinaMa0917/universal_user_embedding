@@ -1,0 +1,20 @@
+rm model.tar.gz
+tar -czf model.tar.gz ./data_dumper ./data_loader ./main ./model  ./trainer ./util
+
+ITERATION=9999999
+SNAPSHOT=50000
+CHECKPOINT_PATH=dist_test/universal_transformer_two_layers_128_small_distant
+
+# use time dataset
+
+odpscmd -e "pai \
+        -name tensorflow1120 -project algo_public_dev \
+        -DjobName=\"CNN\"\
+        -Dtags=\"cnn\"\
+        -Dscript=\"file://`pwd`/model.tar.gz\" \
+        -Dtables=\"odps://college_corp_dev/tables/universal_transformer_future_two_month_distant_2m_seven_days_sort_predict\" \
+        -DentryFile=\"main/train.py\" \
+        -DgpuRequired=\"400\"\
+        -Dbuckets=\"oss://wf135777-lab/?host=cn-hangzhou.oss.aliyun-inc.com&role_arn=acs:ram::1374191468338678:role/wf135777-one-mining-dev\" \
+        -DuserDefinedParameters='--batch_size=64 --snapshot=${SNAPSHOT} --max_steps=${ITERATION} --checkpoint_dir=${CHECKPOINT_PATH}' \
+        "

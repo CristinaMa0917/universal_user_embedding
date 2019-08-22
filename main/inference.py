@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--ps_hosts", type=str, help="")
     parser.add_argument("--worker_hosts", type=str, help="")
     parser.add_argument("--job_name", type=str)
+    parser.add_argument("--max_steps", type=int, default=0)
 
     return parser.parse_known_args()[0]
 
@@ -79,17 +80,6 @@ def main():
 
     transformer_model = model.TextTransformerNet(
         bert_config=config,
-        model_configs=model.TextTransformerNet.ModelConfigs(
-            dropout_rate=model_args.dropout_rate,
-            num_vocabulary = model_args.num_vocabulary,
-            feed_forward_in_dim = model_args.feed_forward_in_dim,
-            model_dim = model_args.model_dim,
-            num_blocks = model_args.num_blocks,
-            num_heads = model_args.num_heads,
-            enable_date_time_emb = model_args.enable_date_time_emb,
-            word_emb_dim=model_args.word_emb_dim,
-            date_span=model_args.date_span
-        ),
         train_configs=model.TrainConfigs(
             learning_rate=model_args.learning_rate,
             batch_size=model_args.batch_size,
@@ -109,7 +99,7 @@ def main():
         model_dir=model_save_dir,
         config=tf.estimator.RunConfig(
             session_config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True)),
-            save_checkpoints_steps=model_args.max_steps,
+            save_checkpoints_steps=args.max_steps,
             keep_checkpoint_max=1
         )
     )
