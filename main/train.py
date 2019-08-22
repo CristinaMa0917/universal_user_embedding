@@ -3,10 +3,9 @@ import tensorflow as tf
 import argparse
 import model
 from data_loader import loader
+from util import env
 from util import helper
 from tensorflow.contrib.distribute.python import cross_tower_ops as cross_tower_ops_lib
-from configs.config import parse_config
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -19,24 +18,34 @@ def parse_args():
     parser.add_argument("--target_length", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=0.001)
     parser.add_argument("--dropout_rate", type=float, default=0.1)
-    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--num_blocks", type=int, default=1)
-    parser.add_argument("--init_ckt_dir", type=str)
-    parser.add_argument("--init_ckt_step", type=int)
+    parser.add_argument("--num_heads", type=int, default=8)
+    parser.add_argument("--num_vocabulary", type=int, default=178422)
+    parser.add_argument("--feed_forward_in_dim", type=int, default=1024)
+    parser.add_argument("--model_dim", type=int, default=256)
+    parser.add_argument("--date_span", type=int, default=60)
+    parser.add_argument("--enable_date_time_emb", type=int, default=1)
+    parser.add_argument("--word_emb_dim", type=int, default=256)
+    parser.add_argument("--max_query_count", type=int, default=300)
+    parser.add_argument("--query_padding_len", type=int, default=8)
     return parser.parse_known_args()[0]
 
 
 def main():
     # Parse arguments and print them
+
+    cross_tower_ops = cross_tower_ops_lib.AllReduceCrossTowerOps(
+        'nccl'
+    )
+    distribution = tf.contrib.distribute.MirroredStrategy(
+        num_gpus=4, cross_tower_ops=cross_tower_ops,
+        all_dense=True  # 这里要根据模型调试一下，
+    )
     args = parse_args()
     print("\nMain arguments:")
     for k, v in args.__dict__.items():
         print("{}={}".format(k, v))
-
-    # Config
-    config = parse_config('MiniBERT')
-    config["init_checkpoint"] = args.buckets + args.init_ckt_dir + "/model.ckpt-{}".format(args.init_ckt_step)
-
 
     # Check if the model has already exisited
     model_save_dir = args.buckets + args.checkpoint_dir
@@ -46,7 +55,19 @@ def main():
     helper.dump_args(model_save_dir, args)
 
     transformer_model = model.TextTransformerNet(
-        bert_config=config,
+        model_configs=model.TextTransformerNet.ModelConfigs(
+            dropout_rate=args.dropout_rate,
+            num_vocabulary = args.num_vocabulary,
+            feed_forward_in_dim = args.feed_forward_in_dim,
+            model_dim = args.model_dim,
+            num_blocks = args.num_blocks,
+            num_heads = args.num_heads,
+            enable_date_time_emb = args.enable_date_time_emb,
+            word_emb_dim=args.word_emb_dim,
+            date_span=args.date_span,
+            max_query_count=args.max_query_count,
+            query_padding_len=args.query_padding_len,
+        ),
         train_configs=model.TrainConfigs(
             learning_rate=args.learning_rate,
             batch_size=args.batch_size,
@@ -54,7 +75,7 @@ def main():
         ),
         predict_configs=None,
         run_configs=model.RunConfigs(
-            log_every=50
+            log_every=200
         )
     )
     # checkpoint_path = None
@@ -62,21 +83,13 @@ def main():
     #     checkpoint_path = model_save_dir + "/model.ckpt-{}".format(args.step)
     # warm_start_settings = tf.estimator.WarmStartSettings(checkpoint_path,
     #                                                      vars_to_warm_start='(.*Embedding|Conv-[1-4]|MlpLayer-1)')
-    cross_tower_ops = cross_tower_ops_lib.AllReduceCrossTowerOps(
-        'nccl'
-    )
-    distribution = tf.contrib.distribute.MirroredStrategy(
-        num_gpus=4, cross_tower_ops=cross_tower_ops,
-        all_dense=False
-    )
-
     estimator = tf.estimator.Estimator(
         model_fn=transformer_model.model_fn,
         model_dir=model_save_dir,
         config=tf.estimator.RunConfig(
             session_config=tf.ConfigProto(
                 gpu_options=tf.GPUOptions(allow_growth=False),
-                allow_soft_placement=True
+                allow_soft_placement=True  # 建议打开
             ),
             save_checkpoints_steps=args.snapshot,
             keep_checkpoint_max=20,
@@ -97,7 +110,6 @@ def main():
             max_steps=args.max_steps
         )
     )
-
 
 if __name__ == '__main__':
     tf.logging.set_verbosity(tf.logging.INFO)

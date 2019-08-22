@@ -3,7 +3,7 @@ import json
 import os
 
 def set_dist_env(dist_params):
-    ps_hosts = (dist_params['ps_hosts'] or "").split(',')
+    ps_hosts = dist_params['ps_hosts'].split(',')
     worker_hosts = dist_params['worker_hosts'].split(',')
     chief_hosts = worker_hosts[0:1]  # get first worker as chief
     worker_hosts = worker_hosts[1:]  # the rest as worker
@@ -20,7 +20,7 @@ def set_dist_env(dist_params):
         'task': {'type': job_name, 'index': task_index}
     }
     print(json.dumps(tf_config))
-    del os.environ['TF_CONFIG']
+    os.environ['TF_CONFIG'] = json.dumps(tf_config)
 
     slice_count = len(worker_hosts) + 1
     if job_name == "ps":

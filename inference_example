@@ -1,0 +1,20 @@
+rm model.tar.gz
+tar -czf model.tar.gz ./data_dumper ./data_loader ./main ./model ./trainer ./util
+
+INPUT_TABLE=transformer_baby_data_two_month_test
+OUTPUT_TABLE=baby_trans_6_months_test
+CHECKPOINT_PATH=yuyang/universal_transformer_freq
+STEP=300000
+
+
+odpscmd -e "pai \
+        -name tensorflow140 -project algo_public_dev \
+        -Dscript=\"file://`pwd`/model.tar.gz\" \
+        -Dtables=\"odps://college_corp_dev/tables/${INPUT_TABLE}\" \
+        -Doutputs=\"odps://college_corp_dev/tables/${OUTPUT_TABLE}\" \
+        -DentryFile=\"main/inference.py\" \
+        -Dbuckets=\"oss://one-graph/?host=cn-zhangjiakou.oss-internal.aliyun-inc.com&role_arn=acs:ram::1459115138698067:role/yuyang\" \
+        -DuserDefinedParameters=\"--checkpoint_dir='$CHECKPOINT_PATH' --step=$STEP \" \
+        -Dcluster='{\"worker\":{\"count\":16,\"cpu\":200,\"memory\":4096,\"gpu\":50}}' \
+        "
+

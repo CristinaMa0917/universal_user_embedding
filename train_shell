@@ -1,0 +1,24 @@
+rm model.tar.gz
+tar -czf model.tar.gz ./data_dumper ./data_loader ./main ./model  ./trainer ./util
+
+ITERATION=999999999
+DROPOUT=0.1
+SNAPSHOT=100000
+WORD_DIMENSION=100
+KERNEL_COUNT=128
+LEARNING_RATE=0.001
+TARGET_LENGTH=100
+HIST_LENGTH=600
+DIM_FEATURE=512
+CHECKPOINT_PATH=yuyang/predict_futrue_plus_time/uni_embed_futrue_drop${DROPOUT}_tanh${DIM_FEATURE}_lr${LEARNING_RATE}_${TARGET_LENGTH}_${HIST_LENGTH}
+
+# use time dataset
+
+odpscmd -e "pai \
+        -name tensorflow180 -project algo_public_dev \
+        -Dscript=\"file://`pwd`/model.tar.gz\" \
+        -Dtables=\"odps://college_corp_dev/tables/dwd_aid_content_1d_time_future\" \
+        -DentryFile=\"main/train.py\" \
+        -Dbuckets=\"oss://one-graph/?host=cn-zhangjiakou.oss-internal.aliyun-inc.com&role_arn=acs:ram::1459115138698067:role/yuyang\" \
+        -DuserDefinedParameters='--snapshot=${SNAPSHOT} --kernels=1,${KERNEL_COUNT},2,${KERNEL_COUNT},3,${KERNEL_COUNT},4,${KERNEL_COUNT} --hidden_size=${DIM_FEATURE} --learning_rate=${LEARNING_RATE} --hist_length=${HIST_LENGTH} --target_length=${TARGET_LENGTH} --checkpoint_dir=$CHECKPOINT_PATH --max_steps=$ITERATION --dropout=$DROPOUT' \
+        "

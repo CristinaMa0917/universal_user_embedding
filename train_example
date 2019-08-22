@@ -3,7 +3,7 @@ tar -czf model.tar.gz ./data_dumper ./data_loader ./main ./model  ./trainer ./ut
 
 ITERATION=9999999
 SNAPSHOT=50000
-CHECKPOINT_PATH=dist_test/universal_transformer_two_layers_128_small_distant
+CHECKPOINT_PATH=yuyang/universal_transformer_freq/
 
 # use time dataset
 
@@ -12,9 +12,9 @@ odpscmd -e "pai \
         -DjobName=\"CNN\"\
         -Dtags=\"cnn\"\
         -Dscript=\"file://`pwd`/model.tar.gz\" \
-        -Dtables=\"odps://college_corp_dev/tables/universal_transformer_future_two_month_distant_2m_seven_days_sort_predict\" \
+        -Dtables=\"odps://college_corp_dev/tables/universal_transformer_future_two_month_seven_days_sort_predict_freq\" \
         -DentryFile=\"main/train.py\" \
         -DgpuRequired=\"400\"\
-        -Dbuckets=\"oss://wf135777-lab/?host=cn-hangzhou.oss.aliyun-inc.com&role_arn=acs:ram::1374191468338678:role/wf135777-one-mining-dev\" \
-        -DuserDefinedParameters='--batch_size=64 --snapshot=${SNAPSHOT} --max_steps=${ITERATION} --checkpoint_dir=${CHECKPOINT_PATH}' \
+        -Dbuckets=\"oss://one-graph/?host=cn-zhangjiakou.oss-internal.aliyun-inc.com&role_arn=acs:ram::1459115138698067:role/yuyang\" \
+        -DuserDefinedParameters='--snapshot=${SNAPSHOT} --max_steps=${ITERATION} --checkpoint_dir=${CHECKPOINT_PATH}' \
         "

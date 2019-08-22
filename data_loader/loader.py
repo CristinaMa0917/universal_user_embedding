@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 class OdpsDataLoader:
-    def __init__(self, table_name, hist_length, target_length, mode, repeat=None, batch_size=128, shuffle=0, slice_id=0, slice_count=1,query_counts = 300):
+    def __init__(self, table_name, hist_length, target_length, mode, repeat=None, batch_size=128, shuffle=2000, slice_id=0, slice_count=1,query_counts = 300):
         # Avoid destroying input parameter
         self._table_name = table_name
         self._max_length = hist_length
@@ -23,6 +23,12 @@ class OdpsDataLoader:
     def _train_data_parser(self, oneid, content, content_count, target):
         content_words, _ = self._text_content_parser(content, self._max_length)
         target_words, target_len = self._text_content_parser(target, self._target_length)
+
+        target_words_div = tf.div(target_words, 256)
+        target_words_freq = tf.bitwise.bitwise_and(target_words, 255)
+        # target_words_div = target_words
+        # target_words_freq = target_len
+
         words = tf.div(content_words, 256) + 1
         content_len = tf.cast(tf.not_equal(content_words, 0), tf.float32)
         dates = tf.bitwise.bitwise_and(content_words, 255)
@@ -31,8 +37,9 @@ class OdpsDataLoader:
             "content_words": words,
             "content_len": content_len,
             "date": dates,
-            "target_words": target_words,
-            "target_len": target_len
+            "target_words": target_words_div,
+            "target_words_freq": target_words_freq,
+            "target_len":target_len
         }, tf.constant(0, dtype=tf.int32) # fake label
 
 
@@ -66,7 +73,7 @@ class OdpsDataLoader:
             if self._repeat != 1:
                 dataset = dataset.repeat(self._repeat)
 
-            dataset = dataset.prefetch(100)
+            dataset = dataset.prefetch(40000)
             dataset = dataset.padded_batch(
                 self._batch_size,
                 padded_shapes=(
@@ -76,7 +83,9 @@ class OdpsDataLoader:
                         "date":[self._max_length],
                         "content_len": [self._max_length],
                         "target_words": [self._target_length],
-                        "target_len": [],
+                        # "target_words_freq": [],
+                        "target_words_freq": [self._target_length],
+                        "target_len":[]
                     }, [])
             )
             return dataset
@@ -97,7 +106,7 @@ class OdpsDataLoader:
             if self._repeat != 1:
                 dataset = dataset.repeat(self._repeat)
 
-            #dataset = dataset.prefetch(40000)
+            dataset = dataset.prefetch(40000)
             dataset = dataset.padded_batch(
                 self._batch_size,
                 padded_shapes=(
@@ -109,7 +118,7 @@ class OdpsDataLoader:
                     }, [])
             )
 
-            return dataset
+            return dataset.make_one_shot_iterator().get_next()
 
     def input_fn(self):
         return self._train_data_fn() if self._mode is tf.estimator.ModeKeys.TRAIN else self._test_data_fn()
@@ -181,7 +190,7 @@ class LocalFileDataLoader:
                     }, [])
             )
 
-            return dataset
+            return dataset.make_one_shot_iterator().get_next()
 
     def _test_data_fn(self):
         with tf.device("/cpu:0"):
@@ -203,7 +212,7 @@ class LocalFileDataLoader:
                     }, [])
             )
 
-            return dataset
+            return dataset.make_one_shot_iterator().get_next()
 
     def input_fn(self):
         return self._train_data_fn() if self._mode is tf.estimator.ModeKeys.TRAIN else self._test_data_fn()
